@@ -1,3 +1,289 @@
+/* Вывести  номер зачетки, название хобби и 
+длительность в месяцах для всех завершенных
+хобби, отсортировав данные по зачетке по
+возрастанию, в пределах зачетки по длительности по убыванию.
+*/
+--1.6 
+select n_z, h_name, d_start, d_finish, 
+extract(year from age(d_finish, d_start))*12 + extract(month from age(d_finish, d_start))
+from public."Students_Hobby" where d_finish is not Null
+order by extract(month from d_start)
+
+/*
+Вывести  фамилию, имя, зачетку, группу, месяц и год рождения
+всех отличников 2-го курса, отсортировав по группе во возрастанию,
+в пределах группы по возрастанию даты рождения.
+
+--1.7
+select f_name, s_name, n_gr, ball, data_b from students
+where ball = 5
+order by n_gr ASC, data_b DESC
+
+
+Вывести  фамилию, имя, зачетку, количество полных лет
+для каждого из студентов 2-х заданных групп, 
+увлекающихся на текущую дату заданным типом хобби,
+отсортировав данные по группе по возрастанию,
+в пределах группы по возрастанию возраста.
+
+
+--2.6
+select S.s_name, S.f_name, S.n_z, extract(year from age(current_date, S.data_b))
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.h_name = H.h_name and S.n_z = SH.n_z and 
+S.n_gr in (2011, 2012) and SH.d_finish is null and
+H.h_type in ('спорт',
+			'искусство')
+order by S.n_gr, S.data_b
+
+ Вывести  названия и риск тех хобби, 
+ которыми увлекаются только отличники 
+ 1,2 или 3 курсов, отсортировав данные
+ по убыванию риска. 
+
+
+--2.7
+select H.h_name, risk
+from public."students" S, public."Students_Hobby" SH,public."hobby" H
+where SH.h_name = H.h_name and S.n_z = SH.n_z and ball = '5' and Substring(S.n_gr::text, 1, 1) in ('1', '2', '3')
+order by 2 desc
+
+Найти название, тип, риск, длительность 
+в месяцах самого продолжительного хобби 
+из действующих, указав номер зачетки  
+студента и номер его группы.
+
+--3.6
+select H.h_name, H.h_type,
+       EXTRACT(MONTH FROM AGE(CURRENT_DATE, MIN(SH.d_start))) AS duration_months,
+       S.n_z, S.n_gr--, MIN(SH.d_start), SH.d_finish
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.n_z = S.n_z
+  and SH.h_name = H.h_name
+  and SH.d_finish IS NULL
+group by H.h_name, H.h_type, S.n_z--, S.n_gr, SH.d_finish
+order by min(SH.d_start)
+limit 1;
+
+--Найти все действующие хобби, которыми увлекаются троечники 2-го курса.
+--3.8
+SELECT H.h_name, H.h_type
+FROM public."students" S, public."Students_Hobby" SH, public."hobby" H
+WHERE S.n_z = SH.n_z AND SH.h_name = H.h_name AND S.n_gr in (2011, 2012, 2013)
+	AND ball >= 2.5 and ball <= 3.5
+	AND SH.d_finish IS NULL;
+
+
+--Найти номера групп, в которых не менее 50% студентов имеют балл не ниже 4.
+--3.10
+SELECT n_gr
+FROM (
+    SELECT S.n_gr, COUNT(S.ball >= 4) AS good_grades_count, COUNT(*) AS cnt_students
+    FROM public."students" S
+    GROUP BY S.n_gr
+) AS grades_info
+WHERE good_grades_count * 2 >= cnt_students
+ORDER BY n_gr
+*/
+
+/*
+Основные групповые (агрегатные) функции в SQL:
+COUNT(): Возвращает количество строк в результате запроса.
+SUM(): Вычисляет сумму значений в указанном столбце.
+AVG(): Вычисляет среднее значение в указанном столбце.
+MIN(): Возвращает минимальное значение в указанном столбце.
+MAX(): Возвращает максимальное значение в указанном столбце.
+*/
+
+/*
+--3.7
+Найти всех студентов, чей балл выше среднего,
+отсортировав по номеру группы по возрастанию,
+в пределах группы по убыванию балла.
+--3.8
+Найти все действующие хобби, которыми увлекаются
+троечники 2-го курса.
+--3.9
+Найти номера курсов, на которых студенты имеют
+в среднем более одного действующего хобби.
+--3.10
+Найти номера групп, в которых не менее 50% 
+студентов имеют балл не ниже 4.
+--3.11
+Для каждого курса подсчитать количество 
+различных  действующих хобби на курсе.
+--3.11
+Вывести  фамилию, имя, зачетку, группу,
+количество  всех действующих хобби для тех студентов, которые имеют максимальных балл в своей группе.
+*/
+
+/*
+insert into public."students" values (13, 'Константин', 'Сергеев', '2002.03.12', 3014, 4.0);
+insert into public."hobby" values ('плавание', 'спорт', 5);
+insert into public."Students_Hobby" 
+values(9, 10, 'спортивное программирование', '2020.01.01', '2022.02.03')
+
+
+--1.1
+select f_name, s_name, n_z, data_b, ball from students
+where ball >= 3 and ball <= 4
+and extract (month from data_b) = extract (month from CURRENT_DATE);
+
+--1.5
+select h_name, d_start, d_finish from public."Students_Hobby" where d_finish is null
+and extract(month from d_start) in (6, 7, 8)
+order by extract(month from d_start);
+
+--1.6 
+select n_z, h_name, d_start, d_finish, 
+extract(year from age(d_finish, d_start))*12 + extract(month from age(d_finish, d_start))
+from public."Students_Hobby" where d_finish is not Null
+order by extract(month from d_start)
+
+--для вывода только месяцов
+select n_z, h_name, d_start, d_finish, 
+extract(month from age(d_finish, d_start))
+from public."Students_Hobby" where d_finish is not Null
+order by extract(month from d_start)
+
+--1.7
+select f_name, s_name, n_gr, ball, data_b from students
+where ball = 5
+order by n_gr ASC, data_b DESC
+
+--2.1
+select s_name, f_name, SH.n_z, S.data_b, H.h_name, extract(year from age(d_finish, d_start))*12 + extract(month from age(d_finish, d_start))
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where d_finish is not null and SH.h_name = H.h_name and S.n_z = SH.n_z
+order by SH.n_z
+
+--2.2
+select H.h_name, H.risk, H.h_type, SH.n_z
+from public."hobby" H, public."Students_Hobby" SH, public."students" S
+where SH.h_name = H.h_name and S.n_z = SH.n_z and
+d_finish is null
+
+--2.3
+select distinct S.f_name, S.s_name, S.n_z, S.data_b, S.ball
+from public."hobby" H, public."students" S, public."Students_Hobby" SH
+where SH.h_name = H.h_name and S.n_z = SH.n_z and
+ball >= 4 and ball <= 5 and 
+extract(month from S.data_b) in (extract(month from CURRENT_DATE), 
+									 extract(month from CURRENT_DATE) + 1)
+
+--2.4
+select S.f_name, S.s_name, S.n_z, S.data_b, SH.h_name
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.h_name = H.h_name and S.n_z = SH.n_z and
+SH.d_finish is not null and 
+extract(year from age(current_date, S.data_b)) > 18 and
+extract(month from S.data_b) = extract(month from current_date)
+
+--2.5
+select distinct S.f_name, S.s_name, S.n_z, S.data_b, substring(S.n_gr::text, 0, 2)
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where S.ball = 5 and S.n_z not in (select SH.n_z from public."Students_Hobby" SH)
+order by substring(S.n_gr::text, 0, 2), data_b desc
+
+--2.6
+--select S.f_name, S.s_name, S.n_z, S.data_b, extract(year from age(current_date, S.data_b)), H.h_type, H.h_name, S.n_gr
+select S.s_name, S.f_name, S.n_z, extract(year from age(current_date, S.data_b))
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.h_name = H.h_name and S.n_z = SH.n_z and 
+S.n_gr in (2011, 2012) and SH.d_finish is null and
+H.h_type in ('спорт',
+			'искусство')
+order by S.n_gr, S.data_b
+
+
+--2.7
+select H.h_name, risk
+from public."students" S, public."Students_Hobby" SH,public."hobby" H
+where SH.h_name = H.h_name and S.n_z = SH.n_z and ball = '5' and Substring(S.n_gr::text, 1, 1) in ('1', '2', '3')
+order by 2 desc
+
+--??
+--select S.f_name, S.s_name, S.n_z, S.data_b, extract(year from age(current_date, S.data_b)), H.h_type, H.h_name, S.n_gr
+select S.s_name, S.f_name, S.n_z, extract(year from age(current_date, S.data_b))
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.h_name = H.h_name and S.n_z = SH.n_z and 
+S.n_gr in (2011, 2012) and SH.d_finish is null and
+H.h_type in ('спорт',
+			'искусство')
+order by S.n_gr, S.data_b
+
+--хобби которым никто не занимается
+select * from hobby 
+where h_name not in (select distinct h_name from public."Students_Hobby") 
+order by risk desc
+
+--3.1
+insert into public."Students_Hobby" 
+values(22, 15, 'игра в симфоническом оркестре', '2014.05.14', null);
+
+select H.h_name, H.risk, count(distinct S.n_gr)
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.d_finish is null and S.n_z = SH.n_z and H.h_name = SH.h_name
+group by H.h_name, H.risk;
+
+--3.2.1
+select S.f_name, S.s_name, S.n_z, S.data_b
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.n_z = S.n_z
+      and SH.n_z = S.n_z
+      and SH.d_finish is NULL
+      and extract(year from age(current_date, S.data_b)) >= 18
+group by S.f_name, S.s_name, S.n_z, S.data_b;
+
+--3.2.2
+select S.f_name, S.s_name, S.n_z, S.data_b
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.n_z = S.n_z
+      and SH.d_finish is NULL
+      and extract(year from age(current_date, S.data_b)) >= 18
+group by S.f_name, S.s_name, S.n_z, S.data_b
+having count(SH.h_name) > 1;
+
+
+--3.3
+select H.h_name, H.risk
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where S.ball = (select max(ball) from public."students")
+      and S.n_z = SH.n_z
+      and SH.d_finish IS NULL
+      and SH.h_name = H.h_name;
+	  
+-----------------------------
+--3.4
+select S.n_gr, AVG(ball)
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.n_z = S.n_z
+	and SH.h_name = H.h_name
+	and SH.d_finish is NULL
+	and H.h_type = 'искусство'
+group by S.n_gr;
+
+--3.5
+select distinct S.n_gr
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.n_z = S.n_z
+	and S.ball = 5
+    and DATE_PART('month', AGE(current_date, SH.d_start)) >= 5
+	and H.h_type = 'спорт'
+	
+--3.6
+select H.h_name, H.h_type,
+       EXTRACT(MONTH FROM AGE(CURRENT_DATE, MIN(SH.d_start))) AS duration_months,
+       S.n_z, S.n_gr--, MIN(SH.d_start), SH.d_finish
+from public."students" S, public."Students_Hobby" SH, public."hobby" H
+where SH.n_z = S.n_z
+  and SH.h_name = H.h_name
+  and SH.d_finish IS NULL
+group by H.h_name, H.h_type, S.n_z--, S.n_gr, SH.d_finish
+order by min(SH.d_start)
+limit 1;
+*/
+
 CREATE TABLE "Дилеры" (
     "ИД_Дилера" SERIAL PRIMARY KEY,
     "Название" VARCHAR(100),
